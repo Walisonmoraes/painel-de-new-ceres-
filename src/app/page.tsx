@@ -2,13 +2,13 @@
 
 import { redirect } from "next/navigation"
 import { Card, Title, BarChart, DonutChart } from "@tremor/react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useEffect, useState } from "react"
+import { createBrowserClient } from "@/lib/supabase"
 
 export default function DashboardPage() {
   const [visitData, setVisitData] = useState([])
   const [userData, setUserData] = useState([])
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient()
 
   useEffect(() => {
     redirect("/programacao")

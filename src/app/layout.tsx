@@ -1,17 +1,16 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Providers } from "@/components/providers"
-import { AppLayout } from "@/components/layout/root-layout"
+import { Toaster } from "sonner"
 import { SidebarProvider } from "@/contexts/sidebar-context"
+import { AppLayout } from "@/components/layout/root-layout"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "NEW CERES - Painel de Programação",
-  description: "Painel de programação da NEW CERES",
+  title: "SmartGest",
+  description: "Sistema de gestão inteligente",
 }
 
 export default function RootLayout({
@@ -28,14 +27,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Providers>
-            <SidebarProvider>
-              <AppLayout>
-                {children}
-              </AppLayout>
-            </SidebarProvider>
-            <Toaster richColors />
-          </Providers>
+          <SidebarProvider>
+            <AppLayout>
+              {children}
+            </AppLayout>
+          </SidebarProvider>
+          <Toaster richColors />
         </ThemeProvider>
       </body>
     </html>

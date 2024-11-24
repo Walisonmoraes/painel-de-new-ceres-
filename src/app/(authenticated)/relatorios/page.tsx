@@ -156,7 +156,7 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <div className="px-6">
+    <div>
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
         <p className="text-muted-foreground">
@@ -164,8 +164,8 @@ export default function RelatoriosPage() {
         </p>
       </div>
 
-      <Card className="mt-6">
-        <div className="p-6">
+      <Card className="mt-4">
+        <div className="p-4">
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="tipo">Tipo de Relatório</Label>
@@ -203,7 +203,7 @@ export default function RelatoriosPage() {
 
       {dados.length > 0 && (
         <Card>
-          <div className="p-6 flex justify-end space-x-2">
+          <div className="p-4 flex justify-end space-x-2">
             <Button variant="outline" onClick={exportarExcel}>
               <FileSpreadsheet className="w-4 h-4 mr-2" />
               Exportar Excel
@@ -214,7 +214,7 @@ export default function RelatoriosPage() {
             </Button>
           </div>
 
-          <div className="overflow-x-auto px-6 pb-6">
+          <div className="overflow-x-auto p-4">
             <Table>
               <TableHeader>
                 <TableRow>

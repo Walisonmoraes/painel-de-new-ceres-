@@ -161,16 +161,16 @@ export function VisitaComercialForm() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Visita Comercial</h1>
-        <p className="text-muted-foreground">
+    <div className="bg-card rounded-lg border shadow-sm">
+      <div className="p-6 border-b">
+        <h2 className="text-lg font-semibold">Nova Visita Comercial</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Registre os detalhes da visita comercial
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
@@ -371,16 +371,14 @@ export function VisitaComercialForm() {
             )}
           </div>
 
-          <Button type="submit" className="w-full md:w-auto" disabled={loading}>
-            {loading ? (
-              <>
+          <div className="flex justify-end">
+            <Button type="submit" className="w-full sm:w-auto" disabled={loading}>
+              {loading && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Registrando...
-              </>
-            ) : (
-              'Registrar Visita'
-            )}
-          </Button>
+              )}
+              Registrar Visita
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
