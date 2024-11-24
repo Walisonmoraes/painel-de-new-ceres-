@@ -4,6 +4,8 @@ import "./globals.css"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "@/components/providers"
+import { AppLayout } from "@/components/layout/root-layout"
+import { SidebarProvider } from "@/contexts/sidebar-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,9 +29,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            {children}
+            <SidebarProvider>
+              <AppLayout>
+                {children}
+              </AppLayout>
+            </SidebarProvider>
+            <Toaster richColors />
           </Providers>
-          <Toaster richColors />
         </ThemeProvider>
       </body>
     </html>

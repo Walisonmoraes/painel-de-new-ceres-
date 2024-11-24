@@ -156,45 +156,47 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="px-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Relatórios</h2>
+        <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
         <p className="text-muted-foreground">
           Gere relatórios de visitas comerciais e programação
         </p>
       </div>
 
-      <Card className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <Label>Tipo de Relatório</Label>
-            <Select
-              value={tipo}
-              onValueChange={(value) => setTipo(value as RelatorioTipo)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="visitas">Visitas Comerciais</SelectItem>
-                <SelectItem value="programacao">Programação</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <Card className="mt-6">
+        <div className="p-6">
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo de Relatório</Label>
+              <Select
+                value={tipo}
+                onValueChange={(value) => setTipo(value as RelatorioTipo)}
+              >
+                <SelectTrigger id="tipo">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="visitas">Visitas Comerciais</SelectItem>
+                  <SelectItem value="programacao">Programação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label>Período</Label>
-            <DatePickerWithRange date={date} onDateChange={setDate} />
-          </div>
+            <div className="space-y-2">
+              <Label>Período</Label>
+              <DatePickerWithRange date={date} onDateChange={setDate} />
+            </div>
 
-          <div className="flex items-end space-x-2">
-            <Button
-              onClick={buscarDados}
-              className="flex-1"
-              disabled={loading}
-            >
-              {loading ? "Buscando..." : "Buscar"}
-            </Button>
+            <div className="flex items-end">
+              <Button
+                onClick={buscarDados}
+                className="w-full md:w-auto"
+                disabled={loading}
+              >
+                {loading ? "Buscando..." : "Buscar"}
+              </Button>
+            </div>
           </div>
         </div>
       </Card>
