@@ -18,7 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <main className={cn(
-        "flex-1 min-h-screen py-6",
+        "flex-1 px-6 py-6",
         isOpen ? "ml-64" : "ml-16"
       )}>
         {children}
