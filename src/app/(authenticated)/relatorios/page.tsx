@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
-import { Label } from "@/components/ui/label"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { DateRangePicker, DateRange } from "@/components/ui/date-range-picker"
 import {
   Select,
   SelectContent,
@@ -21,12 +22,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { FileSpreadsheet, Printer } from "lucide-react"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
 import { createBrowserClient } from "@/lib/supabase"
 import { toast } from "sonner"
-import { DateRange } from "react-day-picker"
 import { exportToExcel } from "@/lib/excel"
+import { Label } from "@/components/ui/label"
 
 type RelatorioTipo = "visitas" | "programacao"
 
@@ -60,7 +59,7 @@ interface Programacao {
 
 export default function RelatoriosPage() {
   const [tipo, setTipo] = useState<RelatorioTipo>("visitas")
-  const [date, setDate] = useState<DateRange | undefined>()
+  const [date, setDate] = useState<DateRange>()
   const [dados, setDados] = useState<Visita[] | Programacao[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -185,7 +184,12 @@ export default function RelatoriosPage() {
 
             <div className="space-y-2">
               <Label>Período</Label>
-              <DatePickerWithRange date={date} onDateChange={setDate} />
+              <div className="flex items-center space-x-2">
+                <DateRangePicker
+                  date={date}
+                  onDateChange={setDate}
+                />
+              </div>
             </div>
 
             <div className="flex items-end">

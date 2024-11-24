@@ -14,18 +14,28 @@ import {
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
 
-  const getIcon = () => {
-    if (theme === "dark") return <Moon className="h-[1.2rem] w-[1.2rem]" />
-    if (theme === "mint") return <Palette className="h-[1.2rem] w-[1.2rem]" />
-    return <Sun className="h-[1.2rem] w-[1.2rem]" />
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon">
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <span className="sr-only">Alternar tema</span>
+      </Button>
+    )
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
-          {getIcon()}
+          {theme === "dark" && <Moon className="h-[1.2rem] w-[1.2rem]" />}
+          {theme === "mint" && <Palette className="h-[1.2rem] w-[1.2rem]" />}
+          {(theme === "light" || !theme) && <Sun className="h-[1.2rem] w-[1.2rem]" />}
           <span className="sr-only">Alternar tema</span>
         </Button>
       </DropdownMenuTrigger>

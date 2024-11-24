@@ -4,6 +4,12 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   Select,
   SelectContent,
@@ -23,7 +29,7 @@ interface Colaborador {
 }
 
 interface FormData {
-  data: string
+  data: Date | string
   colaborador: string
   funcao: string
   ordem_servico: string
@@ -96,7 +102,9 @@ export function ProgramacaoForm() {
       }
 
       // Formatar a data para o formato do banco
-      const formattedData = new Date(formData.data).toISOString()
+      const formattedData = formData.data instanceof Date 
+        ? formData.data.toISOString()
+        : new Date(formData.data).toISOString()
 
       const { error } = await supabase
         .from("programacao")
@@ -123,7 +131,7 @@ export function ProgramacaoForm() {
     }
   }
 
-  function handleChange(field: keyof FormData, value: string | boolean) {
+  function handleChange(field: keyof FormData, value: string | boolean | Date) {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -137,13 +145,36 @@ export function ProgramacaoForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="data">Data</Label>
-              <Input 
-                type="date" 
-                id="data"
-                value={formData.data}
-                onChange={e => handleChange("data", e.target.value)}
-                required
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full pl-3 text-left font-normal",
+                      !formData.data && "text-muted-foreground"
+                    )}
+                  >
+                    {formData.data ? (
+                      format(
+                        formData.data instanceof Date ? formData.data : new Date(formData.data),
+                        "PPP",
+                        { locale: ptBR }
+                      )
+                    ) : (
+                      <span>Selecione uma data</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.data instanceof Date ? formData.data : undefined}
+                    onSelect={(date) => handleChange("data", date as Date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2">

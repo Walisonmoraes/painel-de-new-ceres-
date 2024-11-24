@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createBrowserClient } from "@/lib/supabase"
 import { toast } from "sonner"
@@ -18,7 +24,7 @@ interface FormData {
   email: string
   interesse: string
   produtos: string
-  proximo_contato: string
+  proximo_contato: Date | string
   observacoes?: string
   fotos: string[]
 }
@@ -80,13 +86,15 @@ export function VisitasForm() {
       }
 
       // Formatar a data para o formato do banco
-      const formattedData = new Date(formData.proximo_contato).toISOString()
+      const formattedDate = formData.proximo_contato instanceof Date 
+        ? formData.proximo_contato.toISOString()
+        : new Date(formData.proximo_contato).toISOString()
 
       const { error: insertError } = await supabase
         .from("visitas_comerciais")
         .insert([{
           ...formData,
-          proximo_contato: formattedData
+          proximo_contato: formattedDate
         }])
 
       if (insertError) {
@@ -112,7 +120,7 @@ export function VisitasForm() {
     }
   }
 
-  function handleChange(field: keyof FormData, value: string | string[]) {
+  function handleChange(field: keyof FormData, value: string | string[] | Date) {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -226,14 +234,37 @@ export function VisitasForm() {
 
             <div className="space-y-2">
               <Label htmlFor="proximo_contato">Próximo Contato</Label>
-              <Input 
-                type="date" 
-                id="proximo_contato"
-                value={formData.proximo_contato}
-                onChange={e => handleChange("proximo_contato", e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-                required
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full pl-3 text-left font-normal",
+                      !formData.proximo_contato && "text-muted-foreground"
+                    )}
+                  >
+                    {formData.proximo_contato ? (
+                      format(
+                        formData.proximo_contato instanceof Date ? formData.proximo_contato : new Date(formData.proximo_contato),
+                        "PPP",
+                        { locale: ptBR }
+                      )
+                    ) : (
+                      <span>Selecione uma data</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.proximo_contato instanceof Date ? formData.proximo_contato : undefined}
+                    onSelect={(date) => handleChange("proximo_contato", date as Date)}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2 col-span-full">

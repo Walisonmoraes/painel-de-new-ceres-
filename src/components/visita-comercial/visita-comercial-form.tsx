@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -13,7 +13,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -21,11 +20,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { ImagePlus, Loader2, X } from "lucide-react"
 import { useState } from "react"
 import { createVisitaComercial } from "@/services/visita-comercial"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { CalendarIcon } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+
+export type VisitaComercialFormProps = {
+  onSubmit: (data: z.infer<typeof formSchema>) => void;
+  isLoading?: boolean;
+}
 
 const formSchema = z.object({
   empresa: z.string().min(2, {
@@ -49,19 +60,77 @@ const formSchema = z.object({
   produtos: z.string({
     required_error: "Por favor selecione o produto de interesse.",
   }),
-  proximoContato: z.string().min(1, {
-    message: "Por favor informe a data do próximo contato.",
+  proximoContato: z.date({
+    required_error: "Por favor selecione a data do próximo contato.",
   }),
-  observacoes: z.string().optional(),
+  coordenacaoResponsavel: z.string().min(2, {
+    message: "Por favor informe a coordenação responsável.",
+  }),
+  acompanhado: z.string({
+    required_error: "Por favor indique se estava acompanhado.",
+  }),
+  nomeAcompanhante: z.string().optional().refine((val) => {
+    if (form?.getValues("acompanhado") === "sim") {
+      return val && val.length >= 2;
+    }
+    return true;
+  }, {
+    message: "Por favor informe o nome do acompanhante.",
+  }),
+  oQueFoiDiscutido: z.string().min(1, {
+    message: "Por favor informe o que foi discutido.",
+  }),
+  porQueVisita: z.string().min(1, {
+    message: "Por favor informe o motivo da visita.",
+  }),
+  ondeOcorreu: z.string().min(1, {
+    message: "Por favor informe onde ocorreu a reunião.",
+  }),
+  horarioInicio: z.date({
+    required_error: "Por favor selecione o horário de início.",
+  }),
+  horarioFim: z.date({
+    required_error: "Por favor selecione o horário de fim.",
+  }),
+  participantes: z.string().min(1, {
+    message: "Por favor informe quem participou.",
+  }),
+  comoConduzida: z.string().min(1, {
+    message: "Por favor informe como foi conduzida a reunião.",
+  }),
+  pontosPositivos: z.string().min(1, {
+    message: "Por favor liste os pontos positivos.",
+  }),
+  pontosNegativos: z.string().min(1, {
+    message: "Por favor liste os pontos negativos.",
+  }),
+  oportunidadesMelhoria: z.string().min(1, {
+    message: "Por favor liste as oportunidades de melhoria.",
+  }),
+  proximosPassos: z.string().min(1, {
+    message: "Por favor informe os próximos passos.",
+  }),
+  responsaveis: z.string().min(1, {
+    message: "Por favor informe os responsáveis.",
+  }),
+  prazos: z.string().min(1, {
+    message: "Por favor informe os prazos.",
+  }),
+  data: z.date({
+    required_error: "Por favor selecione a data da visita.",
+  }),
 })
 
 const PRODUTOS_OPTIONS = [
-  { value: "FOB", label: "FOB" },
-  { value: "CIF", label: "CIF" },
-  { value: "RECEBIMENTO_PORTUARIO", label: "RECEBIMENTO PORTUÁRIO" },
+  { value: "PORTO", label: "Porto" },
+  { value: "TERMINAL", label: "Terminal" },
+  { value: "CIF_ARM_FAZ", label: "CIF (Arm/Faz)" }
 ]
 
-export function VisitaComercialForm() {
+export function VisitaComercialForm({
+  onSubmit,
+  isLoading = false,
+}: VisitaComercialFormProps) {
   const [fotos, setFotos] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -75,17 +144,33 @@ export function VisitaComercialForm() {
       email: "",
       interesse: "",
       produtos: "",
-      proximoContato: "",
-      observacoes: "",
+      proximoContato: undefined,
+      coordenacaoResponsavel: "",
+      acompanhado: "",
+      nomeAcompanhante: "",
+      oQueFoiDiscutido: "",
+      porQueVisita: "",
+      ondeOcorreu: "",
+      horarioInicio: new Date(),
+      horarioFim: new Date(),
+      participantes: "",
+      comoConduzida: "",
+      pontosPositivos: "",
+      pontosNegativos: "",
+      oportunidadesMelhoria: "",
+      proximosPassos: "",
+      responsaveis: "",
+      prazos: "",
+      data: undefined,
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (loading) return
+  const watchAcompanhado = form.watch("acompanhado")
 
+  const onSubmitForm = async (data: z.infer<typeof formSchema>) => {
     try {
       setLoading(true)
-      console.log('Valores do formulário:', values)
+      console.log('Valores do formulário:', data)
       
       // Validar se há fotos selecionadas
       if (fotos.length === 0) {
@@ -94,7 +179,7 @@ export function VisitaComercialForm() {
       }
 
       console.log('Iniciando chamada para API...')
-      const response = await createVisitaComercial(values, fotos)
+      const response = await createVisitaComercial(data, fotos)
       console.log('Resposta da API:', response)
       
       if (response.error) {
@@ -165,12 +250,12 @@ export function VisitaComercialForm() {
       <div className="p-6 border-b">
         <h2 className="text-lg font-semibold">Nova Visita Comercial</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Registre os detalhes da visita comercial
+          Registro da visita 
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmitForm)} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
@@ -191,9 +276,9 @@ export function VisitaComercialForm() {
               name="contato"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contato</FormLabel>
+                  <FormLabel>Quem nos Recebeu </FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome do contato" {...field} />
+                    <Input placeholder="Nome de quem nos recebeu" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -207,7 +292,7 @@ export function VisitaComercialForm() {
                 <FormItem>
                   <FormLabel>Cargo</FormLabel>
                   <FormControl>
-                    <Input placeholder="Cargo do contato" {...field} />
+                    <Input placeholder="Cargo de quem nos recebeu" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -270,11 +355,11 @@ export function VisitaComercialForm() {
               name="produtos"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Produtos de Interesse</FormLabel>
+                  <FormLabel>Pontos de Interesse</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o produto de interesse" />
+                        <SelectValue placeholder="Selecione o ponto de interesse" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -285,9 +370,6 @@ export function VisitaComercialForm() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    Selecione o tipo de produto de interesse.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -297,36 +379,392 @@ export function VisitaComercialForm() {
               control={form.control}
               name="proximoContato"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Próximo Contato</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP", { locale: ptBR })
+                          ) : (
+                            <span>Selecione uma data</span>
+                          )}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date < new Date()
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="coordenacaoResponsavel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Coordenação Responsável</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input placeholder="Informe a coordenação responsável" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="acompanhado"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Estava Acompanhado?</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma opção" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="nao">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {watchAcompanhado === "sim" && (
+              <FormField
+                control={form.control}
+                name="nomeAcompanhante"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do Acompanhante</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Digite o nome do acompanhante" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
 
-          <FormField
-            control={form.control}
-            name="observacoes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Observações</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Observações adicionais sobre a visita"
-                    className="min-h-[100px]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-4 border rounded-lg p-4">
+            <h3 className="font-semibold text-lg">Relatório da Visita</h3>
+
+            <div className="space-y-4">
+              <h4 className="font-medium">1. Análise 5W2H</h4>
+              
+              <FormField
+                control={form.control}
+                name="oQueFoiDiscutido"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>O que foi discutido? (What)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva os principais tópicos discutidos na reunião..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="porQueVisita"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Por que esta visita foi realizada? (Why)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Explique o objetivo e motivação desta visita..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="ondeOcorreu"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Onde ocorreu a reunião? (Where)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Local da reunião" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="horarioInicio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Horário de Início</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="time"
+                          {...field}
+                          value={field.value ? format(field.value, "HH:mm") : ""}
+                          onChange={(e) => {
+                            const [hours, minutes] = e.target.value.split(":");
+                            const date = new Date();
+                            date.setHours(parseInt(hours), parseInt(minutes));
+                            field.onChange(date);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="horarioFim"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Horário de Fim</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="time"
+                          {...field}
+                          value={field.value ? format(field.value, "HH:mm") : ""}
+                          onChange={(e) => {
+                            const [hours, minutes] = e.target.value.split(":");
+                            const date = new Date();
+                            date.setHours(parseInt(hours), parseInt(minutes));
+                            field.onChange(date);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="participantes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quem participou? (Who)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Liste todos os participantes da reunião..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="comoConduzida"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Como foi conduzida a reunião? (How)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva como a reunião foi conduzida, metodologia utilizada..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-4 mt-6">
+              <h4 className="font-medium">2. Análise de Pontos</h4>
+
+              <FormField
+                control={form.control}
+                name="pontosPositivos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pontos Positivos</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Liste os aspectos positivos identificados..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pontosNegativos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pontos Negativos</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Liste os pontos que precisam de atenção..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="oportunidadesMelhoria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Oportunidades de Melhoria</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Sugestões para próximas interações..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-4 mt-6">
+              <h4 className="font-medium">3. Plano de Ação</h4>
+
+              <FormField
+                control={form.control}
+                name="proximosPassos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Próximos Passos</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Liste as ações que precisam ser tomadas..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="responsaveis"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Responsáveis</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Liste os responsáveis por cada ação..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="prazos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Prazos</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Defina os prazos para cada ação..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
 
           <div className="space-y-4">
+            <div>
+              <FormLabel>Data da Visita</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !form.getValues("data") && "text-muted-foreground"
+                      )}
+                    >
+                      {form.getValues("data") ? (
+                        format(form.getValues("data"), "PPP", { locale: ptBR })
+                      ) : (
+                        <span>Selecione uma data</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={form.getValues("data")}
+                    onSelect={(date) => form.setValue("data", date)}
+                    disabled={(date) =>
+                      date < new Date()
+                    }
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </div>
+
             <div>
               <FormLabel>Fotos</FormLabel>
               <div className="mt-2">

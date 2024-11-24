@@ -12,11 +12,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createBrowserClient } from "@/lib/supabase"
 import { toast } from "sonner"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
 import * as XLSX from "xlsx"
 
 interface Visita {
@@ -37,14 +41,14 @@ interface Visita {
 export function VisitasTable() {
   const [visitas, setVisitas] = useState<Visita[]>([])
   const [loading, setLoading] = useState(true)
+  const [startDate, setStartDate] = useState<Date | undefined>()
+  const [endDate, setEndDate] = useState<Date | undefined>()
   const [searchTerm, setSearchTerm] = useState("")
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
   const supabase = createBrowserClient()
 
   useEffect(() => {
     fetchVisitas()
-  }, [])
+  }, [startDate, endDate])
 
   async function fetchVisitas() {
     try {
@@ -53,12 +57,17 @@ export function VisitasTable() {
         .select("*")
         .order("created_at", { ascending: false })
 
-      if (searchTerm) {
-        query = query.or(`empresa.ilike.%${searchTerm}%,contato.ilike.%${searchTerm}%,produtos.ilike.%${searchTerm}%`)
+      if (startDate) {
+        query = query.gte("created_at", startDate.toISOString())
+      }
+      if (endDate) {
+        const nextDay = new Date(endDate)
+        nextDay.setDate(nextDay.getDate() + 1)
+        query = query.lt("created_at", nextDay.toISOString())
       }
 
-      if (startDate && endDate) {
-        query = query.gte("proximo_contato", startDate).lte("proximo_contato", endDate)
+      if (searchTerm) {
+        query = query.or(`empresa.ilike.%${searchTerm}%,contato.ilike.%${searchTerm}%,produtos.ilike.%${searchTerm}%`)
       }
 
       const { data, error } = await query
@@ -77,6 +86,18 @@ export function VisitasTable() {
       setLoading(false)
     }
   }
+
+  const filteredVisitas = visitas.filter((visita) => {
+    const searchFields = [
+      visita.empresa,
+      visita.contato,
+      visita.cargo,
+      visita.interesse,
+      visita.produtos,
+    ].map(field => field.toLowerCase())
+
+    return searchFields.some(field => field.includes(searchTerm.toLowerCase()))
+  })
 
   async function handleDelete(id: string) {
     if (!confirm("Tem certeza que deseja excluir esta visita?")) return
@@ -134,91 +155,126 @@ export function VisitasTable() {
         <CardTitle>Visitas Comerciais</CardTitle>
         <Button onClick={handleExport}>Exportar</Button>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="search">Buscar</Label>
-              <Input
-                id="search"
-                placeholder="Buscar por empresa, contato ou produtos"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                onKeyUp={e => e.key === "Enter" && fetchVisitas()}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Data Inicial</Label>
-              <Input
-                type="date"
-                id="startDate"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">Data Final</Label>
-              <Input
-                type="date"
-                id="endDate"
-                value={endDate}
-                onChange={e => setEndDate(e.target.value)}
-              />
-            </div>
+      <CardContent className="p-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <Input
+            placeholder="Pesquisar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="md:w-1/3"
+          />
+          <div className="space-y-2">
+            <Label htmlFor="startDate">Data Inicial</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[240px] pl-3 text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  {startDate ? (
+                    format(startDate, "PPP", { locale: ptBR })
+                  ) : (
+                    <span>Selecione a data inicial</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="endDate">Data Final</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[240px] pl-3 text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  {endDate ? (
+                    format(endDate, "PPP", { locale: ptBR })
+                  ) : (
+                    <span>Selecione a data final</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  disabled={(date) => startDate ? date < startDate : false}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Contato</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Interesse</TableHead>
+                <TableHead>Produtos</TableHead>
+                <TableHead>Próximo Contato</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
                 <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Interesse</TableHead>
-                  <TableHead>Produtos</TableHead>
-                  <TableHead>Próximo Contato</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableCell colSpan={7} className="text-center">
+                    Carregando...
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center">
-                      Carregando...
+              ) : filteredVisitas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">
+                    Nenhuma visita encontrada
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredVisitas.map((visita) => (
+                  <TableRow key={visita.id}>
+                    <TableCell>{visita.empresa}</TableCell>
+                    <TableCell>{visita.contato}</TableCell>
+                    <TableCell>{visita.telefone}</TableCell>
+                    <TableCell>{visita.interesse}</TableCell>
+                    <TableCell>{visita.produtos}</TableCell>
+                    <TableCell>
+                      {format(new Date(visita.proximo_contato), "dd/MM/yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(visita.id)}
+                      >
+                        Excluir
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ) : visitas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center">
-                      Nenhuma visita encontrada
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  visitas.map((visita) => (
-                    <TableRow key={visita.id}>
-                      <TableCell>{visita.empresa}</TableCell>
-                      <TableCell>{visita.contato}</TableCell>
-                      <TableCell>{visita.telefone}</TableCell>
-                      <TableCell>{visita.interesse}</TableCell>
-                      <TableCell>{visita.produtos}</TableCell>
-                      <TableCell>
-                        {format(new Date(visita.proximo_contato), "dd/MM/yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(visita.id)}
-                        >
-                          Excluir
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       </CardContent>
     </Card>

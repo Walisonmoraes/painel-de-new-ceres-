@@ -24,8 +24,8 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-sm space-y-8">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">NEW CERES</h1>
-        <p className="text-gray-500">Painel de Programação</p>
+        <h1 className="text-3xl font-bold">SmartGest</h1>
+        <p className="text-gray-500">Gestão inteligente</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
